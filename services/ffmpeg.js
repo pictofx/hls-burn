@@ -87,11 +87,19 @@ async function burnSubtitles(options) {
   const stderrChunks = [];
   ffmpegProc.stderr.on('data', (data) => stderrChunks.push(data));
 
+  let cleaned = false;
   const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
     subtitleCleanup();
     ytdlpCleanup();
     if (!ffmpegProc.killed) {
-      ffmpegProc.kill('SIGKILL');
+      ffmpegProc.kill('SIGTERM');
+      setTimeout(() => {
+        if (!ffmpegProc.killed) {
+          ffmpegProc.kill('SIGKILL');
+        }
+      }, 2000).unref();
     }
   };
 

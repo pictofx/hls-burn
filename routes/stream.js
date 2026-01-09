@@ -1,5 +1,6 @@
 const express = require('express');
 const { randomUUID } = require('crypto');
+const { pipeline } = require('stream/promises');
 const { burnSubtitles } = require('../services/ffmpeg');
 const processPool = require('../utils/process-pool');
 const logger = require('../utils/logger');
@@ -45,56 +46,38 @@ router.get('/:videoId?', async (req, res, next) => {
   );
 
   try {
-    await processPool.run(
-      () =>
-        new Promise((resolve, reject) => {
-          burnSubtitles({
-            url,
-            subLang,
-            quality,
-            format,
-            cookies,
-            requestId
-          })
-            .then(({ stream, cleanup }) => {
-              res.writeHead(200, {
-                'Content-Type': 'video/mp4',
-                'Transfer-Encoding': 'chunked',
-                'Cache-Control': 'no-store',
-                'X-Request-Id': requestId
-              });
+    await processPool.run(async () => {
+      const { stream, cleanup } = await burnSubtitles({
+        url,
+        subLang,
+        quality,
+        format,
+        cookies,
+        requestId
+      });
 
-              stream.on('error', (err) => {
-                logger.error(
-                  `[${requestId}] Streaming error: ${err.message}`,
-                  { stack: err.stack }
-                );
-                cleanup();
-                if (!res.headersSent) {
-                  res.status(500).json({ error: 'Streaming error' });
-                } else {
-                  res.destroy(err);
-                }
-                reject(err);
-              });
+      res.writeHead(200, {
+        'Content-Type': 'video/mp4',
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-store',
+        'X-Request-Id': requestId
+      });
 
-              res.on('close', () => {
-                cleanup();
-                logger.info(`[${requestId}] Response closed by client`);
-                resolve();
-              });
+      res.on('close', () =>
+        logger.info(`[${requestId}] Response closed by client`)
+      );
 
-              stream.pipe(res);
-            })
-            .catch((err) => {
-              logger.error(
-                `[${requestId}] Failed to start streaming: ${err.message}`,
-                { stack: err.stack }
-              );
-              reject(err);
-            });
-        })
-    );
+      try {
+        await pipeline(stream, res);
+      } catch (err) {
+        logger.error(`[${requestId}] Streaming error: ${err.message}`, {
+          stack: err.stack
+        });
+        throw err;
+      } finally {
+        cleanup();
+      }
+    });
   } catch (err) {
     next(err);
   }

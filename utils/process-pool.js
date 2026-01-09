@@ -62,7 +62,7 @@ class ProcessPool {
    * Kill all tracked child processes.
    */
   cleanup() {
-    for (const proc of Array.from(this.children)) {
+    for (const proc of this.children) {
       try {
         proc.kill('SIGKILL');
       } catch (err) {
