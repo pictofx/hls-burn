@@ -47,52 +47,52 @@ router.get('/:videoId?', async (req, res, next) => {
   try {
     await processPool.run(
       () =>
-        new Promise(async (resolve, reject) => {
-          try {
-            const { stream, cleanup } = await burnSubtitles({
-              url,
-              subLang,
-              quality,
-              format,
-              cookies,
-              requestId
-            });
+        new Promise((resolve, reject) => {
+          burnSubtitles({
+            url,
+            subLang,
+            quality,
+            format,
+            cookies,
+            requestId
+          })
+            .then(({ stream, cleanup }) => {
+              res.writeHead(200, {
+                'Content-Type': 'video/mp4',
+                'Transfer-Encoding': 'chunked',
+                'Cache-Control': 'no-store',
+                'X-Request-Id': requestId
+              });
 
-            res.writeHead(200, {
-              'Content-Type': 'video/mp4',
-              'Transfer-Encoding': 'chunked',
-              'Cache-Control': 'no-store',
-              'X-Request-Id': requestId
-            });
+              stream.on('error', (err) => {
+                logger.error(
+                  `[${requestId}] Streaming error: ${err.message}`,
+                  { stack: err.stack }
+                );
+                cleanup();
+                if (!res.headersSent) {
+                  res.status(500).json({ error: 'Streaming error' });
+                } else {
+                  res.destroy(err);
+                }
+                reject(err);
+              });
 
-            stream.on('error', (err) => {
+              res.on('close', () => {
+                cleanup();
+                logger.info(`[${requestId}] Response closed by client`);
+                resolve();
+              });
+
+              stream.pipe(res);
+            })
+            .catch((err) => {
               logger.error(
-                `[${requestId}] Streaming error: ${err.message}`,
+                `[${requestId}] Failed to start streaming: ${err.message}`,
                 { stack: err.stack }
               );
-              cleanup();
-              if (!res.headersSent) {
-                res.status(500).json({ error: 'Streaming error' });
-              } else {
-                res.destroy(err);
-              }
               reject(err);
             });
-
-            res.on('close', () => {
-              cleanup();
-              logger.info(`[${requestId}] Response closed by client`);
-              resolve();
-            });
-
-            stream.pipe(res);
-          } catch (err) {
-            logger.error(
-              `[${requestId}] Failed to start streaming: ${err.message}`,
-              { stack: err.stack }
-            );
-            reject(err);
-          }
         })
     );
   } catch (err) {

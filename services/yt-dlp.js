@@ -133,8 +133,6 @@ function downloadSubtitle(options) {
     '--no-playlist',
     '--skip-download',
     '--write-subs',
-    '--convert-subs',
-    'vtt',
     '--sub-lang',
     subLang,
     '--sub-format',
