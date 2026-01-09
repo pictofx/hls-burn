@@ -112,6 +112,7 @@ function extractStreams(options) {
 
 /**
  * Download subtitles to a temporary file.
+ * Resolves with { filePath: null } on errors to keep streaming functional.
  * @param {{url:string, subLang?:string, cookies?:string, ytdlpPath?:string, requestId?:string, timeout?:number}} options
  * @returns {Promise<{filePath: string|null, cleanup: () => void}>}
  */

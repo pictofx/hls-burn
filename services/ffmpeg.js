@@ -183,6 +183,13 @@ async function burnSubtitles(options) {
       safeReject(err);
     });
 
+    ffmpegProc.stdin.on('error', (err) => {
+      clearTimeout(timeout);
+      logger.error(`[${requestId}] ffmpeg stdin error: ${err.message}`);
+      cleanup();
+      safeReject(err);
+    });
+
     sourceStream.pipe(ffmpegProc.stdin);
     safeResolve({ stream: ffmpegProc.stdout, cleanup });
   });
