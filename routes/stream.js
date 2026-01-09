@@ -17,6 +17,7 @@ const isValidUrl = (url) => {
   }
 };
 
+// Basic ISO-639-style validation without external dependencies
 const isValidLang = (lang) => /^[a-z]{2,3}(-[a-z]{2,3})?$/i.test(lang);
 
 router.get('/stats', (req, res) => {

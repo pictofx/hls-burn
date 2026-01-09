@@ -8,6 +8,8 @@ const DEFAULT_YTDLP = process.env.YTDLP_PATH || 'yt-dlp';
 const DEFAULT_BROWSER = process.env.COOKIES_BROWSER || 'safari';
 const SUBTITLE_TIMEOUT =
   Number.parseInt(process.env.SUBTITLE_TIMEOUT, 10) || 10000;
+const DEBUG_SUBTITLE_STDOUT =
+  (process.env.DEBUG_SUBTITLE_STDOUT || '').toLowerCase() === 'true';
 
 const createCookiesFile = (cookies) => {
   if (!cookies) return { file: null, cleanup: () => {} };
@@ -157,7 +159,15 @@ function downloadSubtitle(options) {
   );
 
   return new Promise((resolve) => {
-    const child = spawn(ytdlpPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    const stdoutChunks = DEBUG_SUBTITLE_STDOUT ? [] : null;
+    const child = spawn(ytdlpPath, args, {
+      stdio: ['ignore', DEBUG_SUBTITLE_STDOUT ? 'pipe' : 'ignore', 'pipe']
+    });
+
+    if (DEBUG_SUBTITLE_STDOUT && child.stdout) {
+      child.stdout.on('data', (data) => stdoutChunks.push(data));
+    }
+
     const timer = setTimeout(() => {
       logger.warn(
         `[${requestId || 'subtitle'}] Subtitle download timed out after ${timeout}ms`
@@ -168,6 +178,13 @@ function downloadSubtitle(options) {
     child.on('exit', (code) => {
       clearTimeout(timer);
       cookiesCleanup();
+      if (DEBUG_SUBTITLE_STDOUT && stdoutChunks && stdoutChunks.length) {
+        logger.debug(
+          `[${requestId || 'subtitle'}] yt-dlp stdout: ${Buffer.concat(
+            stdoutChunks
+          ).toString()}`
+        );
+      }
       if (code !== 0) {
         logger.warn(
           `[${requestId || 'subtitle'}] yt-dlp exited with code ${code}; continuing without subtitles`

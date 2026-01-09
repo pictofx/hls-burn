@@ -108,14 +108,10 @@ async function burnSubtitles(options) {
     cleaned = true;
     subtitleCleanup();
     ytdlpCleanup();
-    const isAlive =
-      ffmpegProc.exitCode === null &&
-      ffmpegProc.signalCode === null &&
-      !ffmpegProc.killed;
-    if (isAlive) {
+    if (processPool.isProcessAlive(ffmpegProc)) {
       ffmpegProc.kill('SIGTERM');
       setTimeout(() => {
-        if (ffmpegProc.exitCode === null && ffmpegProc.signalCode === null) {
+        if (processPool.isProcessAlive(ffmpegProc)) {
           ffmpegProc.kill('SIGKILL');
         }
       }, FFMPEG_KILL_TIMEOUT_MS).unref();

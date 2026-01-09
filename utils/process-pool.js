@@ -4,6 +4,8 @@ const maxConcurrent =
   Number.parseInt(process.env.MAX_CONCURRENT_STREAMS, 10) || 5;
 const childKillGraceMs =
   Number.parseInt(process.env.PROCESS_CLEANUP_GRACE_MS, 10) || 2000;
+const isProcessAlive = (proc) =>
+  !!proc && proc.exitCode === null && proc.signalCode === null && !proc.killed;
 
 class ProcessPool {
   constructor(max) {
@@ -66,12 +68,10 @@ class ProcessPool {
   cleanup() {
     for (const proc of this.children) {
       try {
-        const isAlive =
-          proc.exitCode === null && proc.signalCode === null && !proc.killed;
-        if (isAlive) {
+        if (isProcessAlive(proc)) {
           proc.kill('SIGTERM');
           setTimeout(() => {
-            if (proc.exitCode === null && proc.signalCode === null) {
+            if (isProcessAlive(proc)) {
               proc.kill('SIGKILL');
             }
           }, childKillGraceMs).unref();
@@ -100,4 +100,7 @@ class ProcessPool {
   }
 }
 
-module.exports = new ProcessPool(maxConcurrent);
+const pool = new ProcessPool(maxConcurrent);
+pool.isProcessAlive = isProcessAlive;
+
+module.exports = pool;
