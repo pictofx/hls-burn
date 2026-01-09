@@ -5,6 +5,7 @@ const path = require('path');
 const logger = require('../utils/logger');
 
 const DEFAULT_YTDLP = process.env.YTDLP_PATH || 'yt-dlp';
+const DEFAULT_BROWSER = process.env.COOKIES_BROWSER || 'safari';
 const SUBTITLE_TIMEOUT =
   Number.parseInt(process.env.SUBTITLE_TIMEOUT, 10) || 10000;
 
@@ -65,8 +66,8 @@ function extractStreams(options) {
 
   if (cookiesFile) {
     args.unshift('--cookies', cookiesFile);
-  } else {
-    args.unshift('--cookies-from-browser', 'safari');
+  } else if (DEFAULT_BROWSER) {
+    args.unshift('--cookies-from-browser', DEFAULT_BROWSER);
   }
 
   logger.info(
@@ -144,8 +145,8 @@ function downloadSubtitle(options) {
 
   if (cookiesFile) {
     args.unshift('--cookies', cookiesFile);
-  } else {
-    args.unshift('--cookies-from-browser', 'safari');
+  } else if (DEFAULT_BROWSER) {
+    args.unshift('--cookies-from-browser', DEFAULT_BROWSER);
   }
 
   logger.info(

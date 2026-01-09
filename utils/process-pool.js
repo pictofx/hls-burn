@@ -2,6 +2,8 @@ const logger = require('./logger');
 
 const maxConcurrent =
   Number.parseInt(process.env.MAX_CONCURRENT_STREAMS, 10) || 5;
+const childKillGraceMs =
+  Number.parseInt(process.env.PROCESS_CLEANUP_GRACE_MS, 10) || 2000;
 
 class ProcessPool {
   constructor(max) {
@@ -64,7 +66,14 @@ class ProcessPool {
   cleanup() {
     for (const proc of this.children) {
       try {
-        proc.kill('SIGKILL');
+        if (!proc.killed) {
+          proc.kill('SIGTERM');
+          setTimeout(() => {
+            if (!proc.killed) {
+              proc.kill('SIGKILL');
+            }
+          }, childKillGraceMs).unref();
+        }
       } catch (err) {
         logger.error(`Failed to kill process ${proc.pid}`, { error: err });
       }

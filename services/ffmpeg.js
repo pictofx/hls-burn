@@ -1,4 +1,5 @@
 const { spawn } = require('child_process');
+const path = require('path');
 const { randomUUID } = require('crypto');
 const logger = require('../utils/logger');
 const processPool = require('../utils/process-pool');
@@ -7,13 +8,20 @@ const { extractStreams, downloadSubtitle } = require('./yt-dlp');
 const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
 const STREAM_TIMEOUT =
   Number.parseInt(process.env.STREAM_TIMEOUT, 10) || 3600000;
+const FFMPEG_KILL_TIMEOUT_MS =
+  Number.parseInt(process.env.FFMPEG_KILL_TIMEOUT_MS, 10) || 2000;
 
-const escapeSubtitlePath = (subtitlePath) =>
-  subtitlePath
+const escapeSubtitlePath = (subtitlePath) => {
+  const normalized = path.resolve(subtitlePath);
+  if (/[`\n\r]/.test(normalized)) {
+    throw new Error('Unsafe characters detected in subtitle path');
+  }
+  return normalized
     .replace(/\\/g, '\\\\')
     .replace(/:/g, '\\:')
     .replace(/'/g, "\\'")
     .replace(/,/g, '\\,');
+};
 
 /**
  * Burn subtitles into the stream and return ffmpeg stdout as readable stream.
@@ -53,7 +61,14 @@ async function burnSubtitles(options) {
   ];
 
   if (subtitlePath) {
-    ffmpegArgs.push('-vf', `subtitles='${escapeSubtitlePath(subtitlePath)}'`);
+    try {
+      const safeSubtitlePath = escapeSubtitlePath(subtitlePath);
+      ffmpegArgs.push('-vf', `subtitles='${safeSubtitlePath}'`);
+    } catch (err) {
+      logger.warn(
+        `[${requestId}] Skipping subtitles due to unsafe path: ${err.message}`
+      );
+    }
   }
 
   ffmpegArgs.push(
@@ -99,7 +114,7 @@ async function burnSubtitles(options) {
         if (!ffmpegProc.killed) {
           ffmpegProc.kill('SIGKILL');
         }
-      }, 2000).unref();
+      }, FFMPEG_KILL_TIMEOUT_MS).unref();
     }
   };
 

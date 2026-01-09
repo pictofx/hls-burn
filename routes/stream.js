@@ -17,7 +17,7 @@ const isValidUrl = (url) => {
   }
 };
 
-const isValidLang = (lang) => /^[a-z0-9_-]+$/i.test(lang);
+const isValidLang = (lang) => /^[a-z]{2,3}(-[a-z]{2,3})?$/i.test(lang);
 
 router.get('/stats', (req, res) => {
   res.json(processPool.stats());

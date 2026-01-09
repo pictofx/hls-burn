@@ -66,6 +66,9 @@ Environment variables (see `.env`):
 - `MAX_CONCURRENT_STREAMS` (default 5)
 - `SUBTITLE_TIMEOUT` (ms, default 10000)
 - `STREAM_TIMEOUT` (ms, default 3600000)
+- `COOKIES_BROWSER` (default `safari`, used with `--cookies-from-browser`)
+- `FFMPEG_KILL_TIMEOUT_MS` (graceful shutdown before SIGKILL, default 2000)
+- `PROCESS_CLEANUP_GRACE_MS` (grace period before killing tracked children, default 2000)
 
 ## Troubleshooting
 - **No subtitles burned**: Ensure `subLang` exists; server continues without subs if none are found.

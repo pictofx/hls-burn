@@ -8,8 +8,16 @@ if (!fs.existsSync(logDir)) {
 }
 
 const logLevel = process.env.LOG_LEVEL || 'info';
-const dateLabel = new Date().toISOString().slice(0, 10);
-const logFile = path.join(logDir, `app-${dateLabel}.log`);
+let currentDate = new Date().toISOString().slice(0, 10);
+const createFileTransport = (date) =>
+  new transports.File({
+    filename: path.join(logDir, `app-${date}.log`),
+    maxsize: 10 * 1024 * 1024,
+    maxFiles: 7,
+    tailable: true
+  });
+
+let fileTransport = createFileTransport(currentDate);
 
 const logger = createLogger({
   level: logLevel,
@@ -23,14 +31,22 @@ const logger = createLogger({
   ),
   transports: [
     new transports.Console(),
-    new transports.File({
-      filename: logFile,
-      maxsize: 10 * 1024 * 1024,
-      maxFiles: 7,
-      tailable: true
-    })
+    fileTransport
   ],
   exitOnError: false
 });
+
+const rotateDaily = () => {
+  const today = new Date().toISOString().slice(0, 10);
+  if (today !== currentDate) {
+    currentDate = today;
+    const newTransport = createFileTransport(today);
+    logger.add(newTransport);
+    logger.remove(fileTransport);
+    fileTransport = newTransport;
+  }
+};
+
+setInterval(rotateDaily, 60 * 60 * 1000).unref();
 
 module.exports = logger;
