@@ -66,10 +66,12 @@ class ProcessPool {
   cleanup() {
     for (const proc of this.children) {
       try {
-        if (!proc.killed) {
+        const isAlive =
+          proc.exitCode === null && proc.signalCode === null && !proc.killed;
+        if (isAlive) {
           proc.kill('SIGTERM');
           setTimeout(() => {
-            if (!proc.killed) {
+            if (proc.exitCode === null && proc.signalCode === null) {
               proc.kill('SIGKILL');
             }
           }, childKillGraceMs).unref();

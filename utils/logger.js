@@ -8,6 +8,7 @@ if (!fs.existsSync(logDir)) {
 }
 
 const logLevel = process.env.LOG_LEVEL || 'info';
+const ROTATION_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 let currentDate = new Date().toISOString().slice(0, 10);
 const createFileTransport = (date) =>
   new transports.File({
@@ -47,6 +48,6 @@ const rotateDaily = () => {
   }
 };
 
-setInterval(rotateDaily, 60 * 60 * 1000).unref();
+setInterval(rotateDaily, ROTATION_CHECK_INTERVAL_MS).unref();
 
 module.exports = logger;
