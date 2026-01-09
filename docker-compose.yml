@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+  video-streamer:
+    build: .
+    container_name: video-streamer
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - PORT=3000
+      - FFMPEG_PATH=ffmpeg
+      - YTDLP_PATH=yt-dlp
+      - MAX_CONCURRENT_STREAMS=5
+      - SUBTITLE_TIMEOUT=10000
+      - STREAM_TIMEOUT=3600000
+    volumes:
+      - ./logs:/usr/src/app/logs
+    networks:
+      - streamer-net
+
+networks:
+  streamer-net:
+    driver: bridge

@@ -1,0 +1,11 @@
+node_modules/
+logs/
+.env.local
+.DS_Store
+*.mp4
+*.ts
+*.vtt
+dist/
+coverage/
+npm-debug.log*
+package-lock.json
